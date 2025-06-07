@@ -12,12 +12,14 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services
     .Configure<FootballDataOptions>(builder.Configuration.GetSection("FootballData"))
      .AddMemoryCache()
-    .AddHttpClient<FootballDataClient>((sp, client) => {
-        var opts = sp.GetRequiredService<IOptions<FootballDataOptions>>().Value;
+   .AddHttpClient<FootballDataClient>((sp, client) =>
+   {
+       var opts = sp.GetRequiredService<IOptions<FootballDataOptions>>().Value;
         client.BaseAddress = new Uri(opts.BaseUrl);
         client.DefaultRequestHeaders.Add("X-Auth-Token", opts.ApiKey);
-    });
-
+    })
+   .AddHttpMessageHandler(() =>
+        new RateLimitedHandler(permitLimit: 10, window: TimeSpan.FromSeconds(20)));
 builder.Services.AddControllersWithViews();
 var app = builder.Build();
 
