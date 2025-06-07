@@ -1,17 +1,36 @@
 ﻿using LiveScoresApp.Models;
 using LiveScoresApp.Services;
 using LiveScoresApp.ViewModels;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 
 public class FootballDataClient
 {
     private readonly HttpClient _client;
     private readonly FootballDataOptions _opts;
+    private readonly IMemoryCache _cache;
+    private readonly TimeSpan _cacheDuration = TimeSpan.FromMinutes(1);
 
-    public FootballDataClient(HttpClient client, IOptions<FootballDataOptions> opts)
+    public FootballDataClient(
+        HttpClient client,
+        IOptions<FootballDataOptions> opts,
+        IMemoryCache cache)
     {
         _client = client;
         _opts = opts.Value;
+        _cache = cache;
+    }
+
+    private async Task<T> GetOrCreateAsync<T>(string key, Func<Task<T>> factory)
+    {
+        if (_cache.TryGetValue(key, out T cached))
+        {
+            return cached;
+        }
+
+        T result = await factory();
+        _cache.Set(key, result, _cacheDuration);
+        return result;
     }
 
     public async Task<List<CompetitionMatchesViewModel>> GetRecentResultsWithLogosAsync()
@@ -21,33 +40,35 @@ public class FootballDataClient
             .Where(id => !string.IsNullOrEmpty(id))
             .Distinct();
 
-        var tasks = compIds.Select(async compId =>
-        {
-            try
-            {
-                var resp = await _client.GetFromJsonAsync<MatchesResponse>(
-                    $"competitions/{compId}/matches?status=FINISHED&limit=10");
-                return new CompetitionMatchesViewModel
+        var tasks = compIds.Select(compId =>
+            GetOrCreateAsync(
+                $"recent_{compId}",
+                async () =>
                 {
-                    CompetitionId = compId,
-                    Name = resp!.Competition.Name,
-                    EmblemUrl = resp.Competition.Emblem,
-                    Matches = resp.Matches
-                };
-            }
-            catch (HttpRequestException ex)
-            {
-                Console.Error.WriteLine($"Error fetching live matches: {ex.Message}");
-                return new CompetitionMatchesViewModel
-                {
-                    CompetitionId = compId,
-                    Name = compId,
-                    EmblemUrl = string.Empty,
-                    Matches = new List<Match>()
-                };
-            }
-        });
-
+                    try
+                    {
+                        var resp = await _client.GetFromJsonAsync<MatchesResponse>(
+                            $"competitions/{compId}/matches?status=FINISHED&limit=10");
+                        return new CompetitionMatchesViewModel
+                        {
+                            CompetitionId = compId,
+                            Name = resp!.Competition.Name,
+                            EmblemUrl = resp.Competition.Emblem,
+                            Matches = resp.Matches
+                        };
+                    }
+                    catch (HttpRequestException ex)
+                    {
+                        Console.Error.WriteLine($"Error fetching live matches: {ex.Message}");
+                        return new CompetitionMatchesViewModel
+                        {
+                            CompetitionId = compId,
+                            Name = compId,
+                            EmblemUrl = string.Empty,
+                            Matches = new List<Match>()
+                        };
+                    }
+                }));
         return (await Task.WhenAll(tasks)).ToList();
     }
 
@@ -58,35 +79,37 @@ public class FootballDataClient
             .Select(id => id.Trim().ToUpperInvariant())
             .Where(id => !string.IsNullOrEmpty(id))
             .Distinct();
-
-        var tasks = compIds.Select(async compId =>
-        {
-            try
+        var tasks = compIds.Select(compId =>
+        GetOrCreateAsync(
+            $"live_{compId}",
+            async () =>
             {
-                var resp = await _client
-                 .GetFromJsonAsync<MatchesResponse>(
-                    $"competitions/{compId}/matches?status=LIVE");
+                try
+                {
+                    var resp = await _client
+                     .GetFromJsonAsync<MatchesResponse>(
+                        $"competitions/{compId}/matches?status=LIVE");
 
-                return new CompetitionMatchesViewModel
+                    return new CompetitionMatchesViewModel
+                    {
+                        CompetitionId = compId,
+                        Name = resp!.Competition.Name,
+                        EmblemUrl = resp.Competition.Emblem,
+                        Matches = resp.Matches
+                    };
+                }
+                catch (HttpRequestException ex)
                 {
-                    CompetitionId = compId,
-                    Name = resp!.Competition.Name,
-                    EmblemUrl = resp.Competition.Emblem,
-                    Matches = resp.Matches
-                };
-            }
-            catch (HttpRequestException ex)
-            {
-            Console.Error.WriteLine($"Error fetching live matches: {ex.Message}");
-                return new CompetitionMatchesViewModel
-                {
-                    CompetitionId = compId,
-                    Name = compId,
-                    EmblemUrl = string.Empty,
-                    Matches = new List<Match>()
-                };
-            }
-        });
+                    Console.Error.WriteLine($"Error fetching live matches: {ex.Message}");
+                    return new CompetitionMatchesViewModel
+                    {
+                        CompetitionId = compId,
+                        Name = compId,
+                        EmblemUrl = string.Empty,
+                        Matches = new List<Match>()
+                    };
+                }
+            }));
 
         return (await Task.WhenAll(tasks)).ToList();
     }
@@ -97,21 +120,23 @@ public class FootballDataClient
         var ids = _opts.CompetitionIds.Distinct();
 
         var tasks = _opts.CompetitionIds
-            .Select(async compId =>
-            {
-                try
-                {
-                    var resp = await _client.GetFromJsonAsync<MatchesResponse>(
-                        $"competitions/{compId}/matches?status=LIVE");
-                    return (compId, matches: resp?.Matches ?? new List<Match>());
-                }
-                catch (HttpRequestException)
-                {
-                    // swallow or log per‐competition failure
-                    return (compId, matches: new List<Match>());
-                }
-            });
-
+                  .Select(compId =>
+                GetOrCreateAsync(
+                    $"liveonly_{compId}",
+                    async () =>
+                    {
+                        try
+                        {
+                            var resp = await _client.GetFromJsonAsync<MatchesResponse>(
+                                $"competitions/{compId}/matches?status=LIVE");
+                            return (compId, matches: resp?.Matches ?? new List<Match>());
+                        }
+                        catch (HttpRequestException)
+                        {
+                            // swallow or log per‐competition failure
+                            return (compId, matches: new List<Match>());
+                        }
+                    }));
         var results = await Task.WhenAll(tasks);
         return results.ToDictionary(r => r.compId, r => r.matches);
     }

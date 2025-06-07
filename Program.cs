@@ -10,6 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services
     .Configure<FootballDataOptions>(builder.Configuration.GetSection("FootballData"))
+     .AddMemoryCache()
     .AddHttpClient<FootballDataClient>((sp, client) => {
         var opts = sp.GetRequiredService<IOptions<FootballDataOptions>>().Value;
         client.BaseAddress = new Uri(opts.BaseUrl);
