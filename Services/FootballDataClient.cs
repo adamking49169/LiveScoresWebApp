@@ -35,8 +35,9 @@ public class FootballDataClient
                     Matches = resp.Matches
                 };
             }
-            catch (HttpRequestException)
+            catch (HttpRequestException ex)
             {
+                Console.Error.WriteLine($"Error fetching live matches: {ex.Message}");
                 return new CompetitionMatchesViewModel
                 {
                     CompetitionId = compId,
@@ -74,8 +75,9 @@ public class FootballDataClient
                     Matches = resp.Matches
                 };
             }
-            catch (HttpRequestException)
+            catch (HttpRequestException ex)
             {
+            Console.Error.WriteLine($"Error fetching live matches: {ex.Message}");
                 return new CompetitionMatchesViewModel
                 {
                     CompetitionId = compId,

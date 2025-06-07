@@ -5,12 +5,19 @@
 @foreach (var comp in Model.Competitions)
 {
     <section class="competition">
+        @{
+            var ordered = comp.Matches
+            .OrderByDescending(m => m.UtcDate)
+            .ToList();
+            var first = ordered.Take(20).ToList();
+            var rest = ordered.Skip(20).ToList();
+        }
         <div class="competition-header">
             @if (!string.IsNullOrEmpty(comp.EmblemUrl))
             {
                 <img src="@comp.EmblemUrl" alt="@comp.Name logo" class="competition-logo" />
             }
-            <h2>@comp.Name (@comp.Matches.Count)</h2>
+            <h2>@comp.Name (@ordered.Count)</h2>
         </div>
 
         @if (!comp.Matches.Any())
@@ -30,7 +37,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var m in comp.Matches)
+                    @foreach (var m in first)
                     {
                         <tr>
                             <td>@m.HomeTeam.Name</td>
@@ -40,8 +47,43 @@
                             <td>@m.UtcDate.ToString("yyyy-MM-dd")</td>
                         </tr>
                     }
+                    @foreach (var m in rest)
+                    {
+                        <tr class="extra-match-@comp.CompetitionId d-none">
+                            <td>@m.HomeTeam.Name</td>
+                            <td>vs</td>
+                            <td>@m.AwayTeam.Name</td>
+                            <td>@(m.Score.FullTime.Home ?? 0) – @(m.Score.FullTime.Away ?? 0)</td>
+                            <td>@m.UtcDate.ToString("yyyy-MM-dd")</td>
+                        </tr>
+                    }
                 </tbody>
             </table>
+            @if (rest.Any())
+            {
+                <button type="button" class="btn btn-secondary btn-sm show-more" data-target="@comp.CompetitionId">Show more</button>
+            }
         }
     </section>
+}
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.show-more').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var target = btn.getAttribute('data-target');
+                    document.querySelectorAll('.extra-match-' + target)
+                        .forEach(function (row) {
+                            row.classList.toggle('d-none');
+                        });
+                    if (btn.textContent.trim() === 'Show more') {
+                        btn.textContent = 'Show less';
+                    } else {
+                        btn.textContent = 'Show more';
+                    }
+                });
+            });
+        });
+    </script>
 }
