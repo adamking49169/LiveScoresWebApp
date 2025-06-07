@@ -1,5 +1,6 @@
 using LiveScoresApp.Services;
 using Microsoft.Extensions.Options;
+using System.Linq;
 
 var builder = WebApplication.CreateBuilder(args);
 

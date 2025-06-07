@@ -21,7 +21,12 @@ public class ScoresController : Controller
         var vm = new LiveScoresWithLogosViewModel { Competitions = comps };
         return View(vm);
     }
-
+    public async Task<IActionResult> Standings()
+    {
+        var comps = await _client.GetStandingsAsync();
+        var vm = new StandingsViewModel { Competitions = comps };
+        return View(vm);
+    }
 }
 
 public class LiveScoresViewModel

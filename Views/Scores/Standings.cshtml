@@ -1,0 +1,52 @@
+﻿@using LiveScoresApp.ViewModels
+@model StandingsViewModel
+
+<h1>League Tables</h1>
+
+@foreach (var comp in Model.Competitions)
+{
+    <section class="competition">
+        <div class="competition-header">
+            @if (!string.IsNullOrEmpty(comp.EmblemUrl))
+            {
+                <img src="@comp.EmblemUrl" alt="@comp.Name logo" class="competition-logo" />
+            }
+            <h2>@comp.Name</h2>
+        </div>
+
+        @if (!comp.Table.Any())
+        {
+            <p>No standings available.</p>
+        }
+        else
+        {
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Team</th>
+                        <th>Pl</th>
+                        <th>W</th>
+                        <th>D</th>
+                        <th>L</th>
+                        <th>Pts</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in comp.Table)
+                    {
+                        <tr>
+                            <td>@row.Position</td>
+                            <td>@row.Team.Name</td>
+                            <td>@row.PlayedGames</td>
+                            <td>@row.Won</td>
+                            <td>@row.Draw</td>
+                            <td>@row.Lost</td>
+                            <td>@row.Points</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+}

@@ -3,6 +3,7 @@ using LiveScoresApp.Services;
 using LiveScoresApp.ViewModels;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
+using System.Linq;
 
 public class FootballDataClient
 {
@@ -139,5 +140,50 @@ public class FootballDataClient
                     }));
         var results = await Task.WhenAll(tasks);
         return results.ToDictionary(r => r.compId, r => r.matches);
+    }
+    public async Task<List<CompetitionStandingsViewModel>> GetStandingsAsync()
+    {
+        var compIds = _opts.CompetitionIds
+            .Select(id => id.Trim().ToUpperInvariant())
+            .Where(id => !string.IsNullOrEmpty(id))
+            .Distinct();
+
+        var tasks = compIds.Select(compId =>
+            GetOrCreateAsync(
+                $"standings_{compId}",
+                async () =>
+                {
+                    try
+                    {
+                        var resp = await _client
+                            .GetFromJsonAsync<StandingsResponse>(
+                                $"competitions/{compId}/standings");
+
+                        var table = resp!.Standings
+                            .FirstOrDefault(s => s.Type == "TOTAL")?.Table
+                            ?? new List<TableRow>();
+
+                        return new CompetitionStandingsViewModel
+                        {
+                            CompetitionId = compId,
+                            Name = resp.Competition.Name,
+                            EmblemUrl = resp.Competition.Emblem,
+                            Table = table
+                        };
+                    }
+                    catch (HttpRequestException ex)
+                    {
+                        Console.Error.WriteLine($"Error fetching standings: {ex.Message}");
+                        return new CompetitionStandingsViewModel
+                        {
+                            CompetitionId = compId,
+                            Name = compId,
+                            EmblemUrl = string.Empty,
+                            Table = new List<TableRow>()
+                        };
+                    }
+                }));
+
+        return (await Task.WhenAll(tasks)).ToList();
     }
 }
