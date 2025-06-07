@@ -1,0 +1,54 @@
+﻿@using LiveScoresApp.ViewModels
+@model LiveScoresWithLogosViewModel
+
+<h1>Live Football Scores</h1>
+
+@foreach (var comp in Model.Competitions)
+{
+    <section class="competition">
+        <div class="competition-header">
+            @if (!string.IsNullOrEmpty(comp.EmblemUrl))
+            {
+                <img src="@comp.EmblemUrl"
+                     alt="@comp.Name logo"
+                     class="competition-logo" />
+            }
+            <h2>@comp.Name (@comp.Matches.Count live)</h2>
+        </div>
+
+        @if (!comp.Matches.Any())
+        {
+            <p>No live matches right now.</p>
+        }
+        else
+        {
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Home</th>
+                        <th></th>
+                        <th>Away</th>
+                        <th>Score</th>
+                        <th>Minute</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var m in comp.Matches)
+                    {
+                        <tr>
+                            <td>@m.HomeTeam.Name</td>
+                            <td>vs</td>
+                            <td>@m.AwayTeam.Name</td>
+                            <td>
+                                @(m.Score.FullTime.Home ?? 0)
+                                –
+                                @(m.Score.FullTime.Away ?? 0)
+                            </td>
+                            <td>@(m.Minute?.ToString() ?? "-")&prime;</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+}

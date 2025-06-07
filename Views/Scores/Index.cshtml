@@ -1,0 +1,32 @@
+﻿@model List<LiveScoresApp.Models.Match>
+
+<h1>Live Football Scores (Premier League)</h1>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Time (UTC)</th>
+            <th>Home Team</th>
+            <th>Away Team</th>
+            <th>Score</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var m in Model)
+        {
+            <tr>
+                <td>@m.UtcDate.ToString("HH:mm")</td>
+                <td>@m.HomeTeam.Name</td>
+                <td>@m.AwayTeam.Name</td>
+                <td>@m.Score.FullTime</td>
+                <td>@m.Status</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<script>
+    // refresh every 30 seconds
+    setTimeout(() => location.reload(), 30000);
+</script>
