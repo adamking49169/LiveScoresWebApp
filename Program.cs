@@ -21,6 +21,8 @@ var app = builder.Build();
 
 app.UseStaticFiles();
 app.UseRouting();
-app.MapDefaultControllerRoute();
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Scores}/{action=Live}/{id?}");
 
 app.Run();
