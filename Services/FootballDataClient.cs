@@ -141,6 +141,48 @@ public class FootballDataClient
         var results = await Task.WhenAll(tasks);
         return results.ToDictionary(r => r.compId, r => r.matches);
     }
+
+    public async Task<List<CompetitionScorersViewModel>> GetTopScorersWithLogosAsync()
+    {
+        var compIds = _opts.CompetitionIds
+            .Select(id => id.Trim().ToUpperInvariant())
+            .Where(id => !string.IsNullOrEmpty(id))
+            .Distinct();
+
+        var tasks = compIds.Select(compId =>
+            GetOrCreateAsync(
+                $"scorers_{compId}",
+                async () =>
+                {
+                    try
+                    {
+                        var resp = await _client.GetFromJsonAsync<ScorersResponse>(
+                            $"competitions/{compId}/scorers?limit=10");
+
+                        return new CompetitionScorersViewModel
+                        {
+                            CompetitionId = compId,
+                            Name = resp!.Competition.Name,
+                            EmblemUrl = resp.Competition.Emblem,
+                            Scorers = resp.Scorers
+                        };
+                    }
+                    catch (HttpRequestException ex)
+                    {
+                        Console.Error.WriteLine($"Error fetching scorers: {ex.Message}");
+                        return new CompetitionScorersViewModel
+                        {
+                            CompetitionId = compId,
+                            Name = compId,
+                            EmblemUrl = string.Empty,
+                            Scorers = new List<Scorer>()
+                        };
+                    }
+                }));
+
+        return (await Task.WhenAll(tasks)).ToList();
+    }
+
     public async Task<List<CompetitionStandingsViewModel>> GetStandingsAsync()
     {
         var compIds = _opts.CompetitionIds

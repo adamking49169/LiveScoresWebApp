@@ -1,0 +1,42 @@
+﻿@model LiveScoresApp.ViewModels.TopScorersViewModel
+
+<h1>Top Scorers</h1>
+
+@foreach (var comp in Model.Competitions)
+{
+    <section class="competition">
+        <div class="competition-header">
+            @if (!string.IsNullOrEmpty(comp.EmblemUrl))
+            {
+                <img src="@comp.EmblemUrl" alt="@comp.Name logo" class="competition-logo" />
+            }
+            <h2>@comp.Name</h2>
+        </div>
+        @if (!comp.Scorers.Any())
+        {
+            <p>No scorer data available.</p>
+        }
+        else
+        {
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Player</th>
+                        <th>Team</th>
+                        <th>Goals</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in comp.Scorers)
+                    {
+                        <tr>
+                            <td>@s.Player.Name</td>
+                            <td>@s.Team.Name</td>
+                            <td>@s.Goals</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+}
