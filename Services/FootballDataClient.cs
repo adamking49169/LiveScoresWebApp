@@ -14,6 +14,43 @@ public class FootballDataClient
         _opts = opts.Value;
     }
 
+    public async Task<List<CompetitionMatchesViewModel>> GetRecentResultsWithLogosAsync()
+    {
+        var compIds = _opts.CompetitionIds
+            .Select(id => id.Trim().ToUpperInvariant())
+            .Where(id => !string.IsNullOrEmpty(id))
+            .Distinct();
+
+        var tasks = compIds.Select(async compId =>
+        {
+            try
+            {
+                var resp = await _client.GetFromJsonAsync<MatchesResponse>(
+                    $"competitions/{compId}/matches?status=FINISHED&limit=10");
+                return new CompetitionMatchesViewModel
+                {
+                    CompetitionId = compId,
+                    Name = resp!.Competition.Name,
+                    EmblemUrl = resp.Competition.Emblem,
+                    Matches = resp.Matches
+                };
+            }
+            catch (HttpRequestException)
+            {
+                return new CompetitionMatchesViewModel
+                {
+                    CompetitionId = compId,
+                    Name = compId,
+                    EmblemUrl = string.Empty,
+                    Matches = new List<Match>()
+                };
+            }
+        });
+
+        return (await Task.WhenAll(tasks)).ToList();
+    }
+
+
     public async Task<List<CompetitionMatchesViewModel>> GetAllLiveMatchesWithLogosAsync()
     {
         var compIds = _opts.CompetitionIds

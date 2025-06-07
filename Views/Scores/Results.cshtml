@@ -1,0 +1,47 @@
+﻿@model LiveScoresApp.ViewModels.LiveScoresWithLogosViewModel
+
+<h1>Recent Results</h1>
+
+@foreach (var comp in Model.Competitions)
+{
+    <section class="competition">
+        <div class="competition-header">
+            @if (!string.IsNullOrEmpty(comp.EmblemUrl))
+            {
+                <img src="@comp.EmblemUrl" alt="@comp.Name logo" class="competition-logo" />
+            }
+            <h2>@comp.Name (@comp.Matches.Count)</h2>
+        </div>
+
+        @if (!comp.Matches.Any())
+        {
+            <p>No recent matches.</p>
+        }
+        else
+        {
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Home</th>
+                        <th></th>
+                        <th>Away</th>
+                        <th>Score</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var m in comp.Matches)
+                    {
+                        <tr>
+                            <td>@m.HomeTeam.Name</td>
+                            <td>vs</td>
+                            <td>@m.AwayTeam.Name</td>
+                            <td>@(m.Score.FullTime.Home ?? 0) – @(m.Score.FullTime.Away ?? 0)</td>
+                            <td>@m.UtcDate.ToString("yyyy-MM-dd")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+}
