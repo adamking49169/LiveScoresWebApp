@@ -27,7 +27,7 @@ public class FootballDataClient
             {
                 var resp = await _client
                  .GetFromJsonAsync<MatchesResponse>(
-                    $"/competitions/{compId}/matches?status=LIVE");
+                    $"competitions/{compId}/matches?status=LIVE");
 
                 return new CompetitionMatchesViewModel
                 {
@@ -63,7 +63,7 @@ public class FootballDataClient
                 try
                 {
                     var resp = await _client.GetFromJsonAsync<MatchesResponse>(
-                        $"/competitions/{compId}/matches?status=LIVE");
+                        $"competitions/{compId}/matches?status=LIVE");
                     return (compId, matches: resp?.Matches ?? new List<Match>());
                 }
                 catch (HttpRequestException)
